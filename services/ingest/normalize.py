@@ -72,3 +72,48 @@ def parse_linux_auth_line(line: str, host: str) -> SchemaEventIn | None:
             raw=line,
         )
     return None
+
+#Web Access Log Format
+WEB_ACCESS = re.compile(
+    r'^(\d+\.\d+\.\d+\.\d+) \S+ (\S+) \[([^\]]+)\] "[A-Z]+ [^"]*" (\d{3})\b'
+)
+
+
+def parse_web_access_line(line: str, host: str) -> SchemaEventIn | None:
+    match = WEB_ACCESS.match(line.strip())
+
+    if match is None:
+        return None
+
+    source_ip, username_text, time_text, status_text = match.groups()
+
+    try:
+        event_time = datetime.strptime(time_text, "%d/%b/%Y:%H:%M:%S %z")
+    except ValueError:
+        return None
+
+    status = int(status_text)
+
+    if status < 400:
+        event_type = "http_request"
+        outcome = "success"
+    elif status < 500:
+        event_type = "http_client_error"
+        outcome = "failure"
+    else:
+        event_type = "http_server_error"
+        outcome = "failure"
+
+    username = None if username_text == "-" else username_text
+
+    return SchemaEventIn(
+        event_time=event_time,
+        host=host,
+        source="web_access",
+        event_type=event_type,
+        username=username,
+        source_ip=source_ip,
+        outcome=outcome,
+        raw=line.strip(),
+    )
+
