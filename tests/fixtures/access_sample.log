@@ -1,0 +1,5 @@
+192.168.56.1 - - [22/Oct/2026:01:25:10 -0300] "GET / HTTP/1.1" 200 1043 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+203.0.113.45 - - [22/Oct/2026:01:26:02 -0300] "GET /admin HTTP/1.1" 404 512 "-" "Mozilla/5.0 (compatible; scanner)"
+203.0.113.45 - admin [22/Oct/2026:01:30:00 -0300] "POST /login HTTP/1.1" 401 231 "-" "curl/8.0"
+192.168.56.1 - - [22/Oct/2026:01:31:44 -0300] "GET /index.html HTTP/1.1" 500 0 "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+this is not a web log line at all
