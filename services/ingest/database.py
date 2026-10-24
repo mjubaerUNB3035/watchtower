@@ -66,3 +66,40 @@ def save_event(event: SchemaEventIn) -> int:
     with engine.begin() as connection:
         new_id = connection.execute(sql, values).scalar_one()
     return new_id
+
+# Search the events table.
+# Every filter is optional. A filter left as None is not used.
+# Returns a list of rows, each row as a dictionary.
+def search_events(source=None, event_type=None, username=None,
+                  source_ip=None, limit=100):
+    sql = ("SELECT id, event_time, host, source, event_type, username, "
+           "source_ip, outcome, raw, received_at FROM events")
+    conditions = []
+    values = {}
+
+    # Build only the conditions the caller actually asked for.
+    if source is not None:
+        conditions.append("source = :source")
+        values["source"] = source
+    if event_type is not None:
+        conditions.append("event_type = :event_type")
+        values["event_type"] = event_type
+    if username is not None:
+        conditions.append("username = :username")
+        values["username"] = username
+    if source_ip is not None:
+        conditions.append("source_ip = :source_ip")
+        values["source_ip"] = source_ip
+
+    if conditions:
+        sql += " WHERE " + " AND ".join(conditions)
+
+    sql += " ORDER BY id LIMIT :limit"
+    values["limit"] = limit
+
+    # engine.connect is for reading. engine.begin in save_event is for writing.
+    with engine.connect() as connection:
+        rows = connection.execute(text(sql), values).mappings().all()
+
+    return [dict(row) for row in rows]
+
