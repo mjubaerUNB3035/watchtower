@@ -7,7 +7,7 @@
 
 from fastapi import FastAPI
 from services.ingest.schema import SchemaEventIn
-from services.ingest.database import save_event
+from services.ingest.database import save_event, search_events
 
 
 # The app object is the whole web service.
@@ -39,3 +39,18 @@ def receive_event(event: SchemaEventIn):
         "event_type": event.event_type,
         "outcome": event.outcome,
     }
+
+# Read events back out, with optional filters.
+# FastAPI turns these parameters into query parameters in the URL:
+# /events?source=web_access fills source, and so on.
+# A parameter left out stays None, which search_events reads as
+# "no filter on this field".
+@app.get("/events")
+def list_events(source: str | None = None,
+                event_type: str | None = None,
+                username: str | None = None,
+                source_ip: str | None = None,
+                limit: int = 100):
+    return search_events(source=source, event_type=event_type,
+                         username=username, source_ip=source_ip,
+                         limit=limit)
