@@ -1,0 +1,4 @@
+2026-10-24T11:10:00.000000-03:00 watchtower-linux sshd-session[5001]: Failed password for root from 198.51.100.99 port 52001 ssh2
+2026-10-24T11:11:00.000000-03:00 watchtower-linux sshd-session[5002]: Failed password for admin from 198.51.100.99 port 52002 ssh2
+2026-10-24T11:12:00.000000-03:00 watchtower-linux sshd-session[5003]: Failed password for oracle from 198.51.100.99 port 52003 ssh2
+2026-10-24T11:13:00.000000-03:00 watchtower-linux sshd-session[5004]: Failed password for ubuntu from 198.51.100.99 port 52004 ssh2

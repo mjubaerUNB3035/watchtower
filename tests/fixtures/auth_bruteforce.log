@@ -1,0 +1,6 @@
+2026-10-24T11:00:05.000000-03:00 watchtower-linux sshd-session[4001]: Failed password for md from 203.0.113.45 port 51001 ssh2
+2026-10-24T11:00:35.000000-03:00 watchtower-linux sshd-session[4002]: Failed password for md from 203.0.113.45 port 51002 ssh2
+2026-10-24T11:01:05.000000-03:00 watchtower-linux sshd-session[4003]: Failed password for md from 203.0.113.45 port 51003 ssh2
+2026-10-24T11:01:35.000000-03:00 watchtower-linux sshd-session[4004]: Failed password for md from 203.0.113.45 port 51004 ssh2
+2026-10-24T11:02:05.000000-03:00 watchtower-linux sshd-session[4005]: Failed password for md from 203.0.113.45 port 51005 ssh2
+2026-10-24T11:02:35.000000-03:00 watchtower-linux sshd-session[4006]: Failed password for md from 203.0.113.45 port 51006 ssh2
