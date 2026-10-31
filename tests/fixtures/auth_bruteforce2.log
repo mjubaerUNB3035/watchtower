@@ -1,0 +1,6 @@
+2026-10-31T14:20:05-03:00 watchtower-linux sshd[2001]: Failed password for root from 198.51.100.50 port 53001 ssh2
+2026-10-31T14:20:35-03:00 watchtower-linux sshd[2002]: Failed password for root from 198.51.100.50 port 53002 ssh2
+2026-10-31T14:21:05-03:00 watchtower-linux sshd[2003]: Failed password for root from 198.51.100.50 port 53003 ssh2
+2026-10-31T14:21:35-03:00 watchtower-linux sshd[2004]: Failed password for root from 198.51.100.50 port 53004 ssh2
+2026-10-31T14:22:05-03:00 watchtower-linux sshd[2005]: Failed password for root from 198.51.100.50 port 53005 ssh2
+2026-10-31T14:22:35-03:00 watchtower-linux sshd[2006]: Failed password for root from 198.51.100.50 port 53006 ssh2
