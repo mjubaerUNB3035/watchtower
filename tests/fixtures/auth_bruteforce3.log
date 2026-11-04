@@ -1,0 +1,6 @@
+2026-11-01T09:15:05-03:00 watchtower-linux sshd[3001]: Failed password for ubuntu from 198.51.100.77 port 54001 ssh2
+2026-11-01T09:15:35-03:00 watchtower-linux sshd[3002]: Failed password for ubuntu from 198.51.100.77 port 54002 ssh2
+2026-11-01T09:16:05-03:00 watchtower-linux sshd[3003]: Failed password for ubuntu from 198.51.100.77 port 54003 ssh2
+2026-11-01T09:16:35-03:00 watchtower-linux sshd[3004]: Failed password for ubuntu from 198.51.100.77 port 54004 ssh2
+2026-11-01T09:17:05-03:00 watchtower-linux sshd[3005]: Failed password for ubuntu from 198.51.100.77 port 54005 ssh2
+2026-11-01T09:17:35-03:00 watchtower-linux sshd[3006]: Failed password for ubuntu from 198.51.100.77 port 54006 ssh2
