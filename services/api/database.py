@@ -1,7 +1,5 @@
 # services/api/database.py
-# Read-only queries for the dashboard API.
-# One engine, like every other service. Nothing here writes;
-# review writes go through the agent's review_verdict function.
+# dashboard api queries, plus incident writes
 
 import os
 from pathlib import Path
@@ -9,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
-# Load .env file
+# load .env from project root
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 DATABASE_URL = (
@@ -41,7 +39,7 @@ LATEST_VERDICT = """
 
 
 def list_alerts():
-    # Every alert, each with its latest verdict beside it.
+    # all alerts from alerts, each with its latest verdict
     sql = f"""
         SELECT {ALERT_COLUMNS}
         FROM alerts a
@@ -54,7 +52,7 @@ def list_alerts():
 
 
 def get_alert_detail(alert_id):
-    # One alert, its latest verdict, and its evidence events.
+    # one alert from alerts, with latest verdict and its events
     sql = f"""
         SELECT {ALERT_COLUMNS}
         FROM alerts a
@@ -83,9 +81,9 @@ def get_alert_detail(alert_id):
     return alert
 
 
-#Overview
+# overview
 def overview_counts():
-    # The numbers on the Overview page cards.
+    # overview page counts from events, alerts, triage_verdicts
     counts = {}
     simple = {
         "events": "SELECT COUNT(*) FROM events",
@@ -112,22 +110,26 @@ def overview_counts():
     }
     return counts
 
-# --- Incidents ---
+# incidents
 
 def final_verdict_of(alert):
+    # final verdict word: human_verdict if set, else verdict
     return alert.get("human_verdict") or alert.get("verdict")
 
 
 def incident_eligible(alert):
+    # true only when reviewed and the final verdict is true_positive
     reviewed = alert.get("review_status") in ("approved", "corrected")
     return reviewed and final_verdict_of(alert) == "true_positive"
 
 
 def incident_title(alert):
+    # title from rule name and source ip
     return f"{alert['rule_name']} from {alert['source_ip']}"
 
 
 def get_incident_for_alert(alert_id):
+    # incident from incidents for one alert, or none
     sql = text(
         "SELECT id, alert_id, created_at, title, status, notes, closed_at "
         "FROM incidents WHERE alert_id = :alert_id"
@@ -138,6 +140,7 @@ def get_incident_for_alert(alert_id):
 
 
 def create_incident(alert):
+    # insert incident into incidents, return the new row
     sql = text(
         "INSERT INTO incidents (alert_id, title) VALUES (:alert_id, :title) "
         "RETURNING id, alert_id, created_at, title, status, notes, closed_at"
@@ -149,6 +152,7 @@ def create_incident(alert):
 
 
 def list_incidents():
+    # all incidents from incidents, joined with alerts
     sql = text(
         "SELECT i.id, i.alert_id, i.created_at, i.title, i.status, "
         "i.notes, i.closed_at, a.rule_name, a.severity, a.source_ip "
@@ -160,6 +164,7 @@ def list_incidents():
 
 
 def get_incident(incident_id):
+    # one incident from incidents, or none
     sql = text(
         "SELECT id, alert_id, created_at, title, status, notes, closed_at "
         "FROM incidents WHERE id = :incident_id"
@@ -170,6 +175,7 @@ def get_incident(incident_id):
 
 
 def update_incident(incident_id, status, notes):
+    # update status and notes in incidents, return id or none
     sql = text(
         "UPDATE incidents SET status = :status, notes = :notes, "
         "closed_at = CASE WHEN :status = 'closed' THEN now() "
@@ -181,9 +187,10 @@ def update_incident(incident_id, status, notes):
         found = conn.execute(sql, params).scalar_one_or_none()
     return found
 
-# --- Shift log ---
+# shift log
 
 def shift_summary(hours):
+    # live summary for the last N hours, nothing stored
     since_sql = "now() - INTERVAL '1 hour' * :hours"
     params = {"hours": hours}
     with engine.connect() as conn:
@@ -237,9 +244,10 @@ def shift_summary(hours):
         "open_incidents": open_incidents,
         "pending_reviews": pending,
     }
-# --- Hosts and users ---
+# hosts and users
 
 def list_hosts():
+    # per host counts from events
     with engine.connect() as conn:
         rows = conn.execute(
             text(
@@ -256,6 +264,7 @@ def list_hosts():
 
 
 def list_users():
+    # per user counts from events
     with engine.connect() as conn:
         rows = conn.execute(
             text(
@@ -270,4 +279,3 @@ def list_users():
             )
         ).mappings().all()
     return [dict(r) for r in rows]
-

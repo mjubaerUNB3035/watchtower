@@ -1,6 +1,5 @@
 # services/agent/database.py
-# Database access for the triage agent.
-# Agent reads alerts - evidence events - writes verdicts.
+# database access for the triage agent
 
 import os
 from pathlib import Path
@@ -8,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
-# Load .env file
+# load .env from project root
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 DATABASE_URL = (
@@ -21,8 +20,7 @@ engine = create_engine(DATABASE_URL)
 
 
 def get_alerts_to_triage():
-    # New marked alerts
-    # Duplication Prevented
+    # new alerts from alerts, none in triage_verdicts yet
     sql = """
         SELECT id, created_at, rule_name, severity, mitre_technique, host,
                source_ip, username, event_count, window_start, window_end,
@@ -38,8 +36,7 @@ def get_alerts_to_triage():
 
 
 def get_events(event_ids):
-    # The evidence events form alert
-    # Order by id.
+    # evidence events from events, ordered by id
     sql = """
         SELECT id, event_time, host, source, event_type, username,
                source_ip, outcome, raw
@@ -55,8 +52,7 @@ def get_events(event_ids):
 
 
 def save_verdict(alert_id, verdict, model):
-    # Insert one verdict row and return its new id.
-    # created_at and status are filled by the table defaults (now, pending).
+    # insert verdict into triage_verdicts, return new id
     sql = """
         INSERT INTO triage_verdicts
             (alert_id, verdict, confidence, summary,
@@ -79,7 +75,7 @@ def save_verdict(alert_id, verdict, model):
 
 
 def get_pending_verdicts():
-    # Pending verdicts from triage_verdicts, each with its alerts row joined.
+    # pending verdicts from triage_verdicts, each with its alerts row joined
     sql = """
         SELECT v.id AS verdict_id, v.alert_id, a.rule_name,
                a.source_ip, a.username, a.event_count,
@@ -96,8 +92,7 @@ def get_pending_verdicts():
 
 
 def review_verdict(verdict_id, decision, human_verdict=None):
-    # approved -> status approved. corrected -> human word stored.
-    # The pending guard means a verdict can be reviewed only once.
+    # approve or correct a pending verdict in triage_verdicts
     if decision == "approved":
         sql = """
             UPDATE triage_verdicts

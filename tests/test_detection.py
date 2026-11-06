@@ -1,9 +1,4 @@
 # Tests for the detection engine's find_alerts function.
-#
-# find_alerts is pure: it takes a rule dict and a list of event dicts and
-# returns alert dicts. No database, no API. The events here are built by
-# make_event with only the fields find_alerts actually reads, and the
-# rules are the real ones from services.detection.rules.
 
 from datetime import datetime, timedelta, timezone
 

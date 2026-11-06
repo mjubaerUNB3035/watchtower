@@ -1,8 +1,5 @@
 # services/agent/evaluate.py
-# Evaluation run for the triage agent.
-# Runs the full chain on every alert and prints the verdicts
-# WITHOUT saving anything. Reviewed verdicts stay final.
-# Known correct answers for the current 4 alerts are below.
+# triage agent evaluation, prints verdicts, saves nothing
 
 from sqlalchemy import text
 
@@ -11,12 +8,13 @@ from services.agent.database import engine, get_events
 from services.agent.prompts import build_triage_prompt
 from services.agent.tools import alert_facts, gather_intel
 
+# expected verdicts by alert id
 EXPECTED = {1: "true_positive", 2: "true_positive",
             3: "true_positive", 4: "true_positive"}
 
 
 def get_all_alerts():
-    # Every alert in the table, reviewed or not, oldest first.
+    # all alerts from alerts, ordered by id
     sql = "SELECT * FROM alerts ORDER BY id"
     with engine.connect() as connection:
         rows = connection.execute(text(sql)).mappings().all()
@@ -24,6 +22,7 @@ def get_all_alerts():
 
 
 def run_all():
+    # run the chain on every alert, print verdicts and score
     correct = 0
     for alert in get_all_alerts():
         events = get_events(alert["event_ids"])

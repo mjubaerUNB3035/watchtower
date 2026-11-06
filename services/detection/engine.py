@@ -1,20 +1,5 @@
-# WatchTower detection engine.
-#
-# How a run flows:
-#   1. fetch_events asks the ingest API (GET /events) for one event_type.
-#      JSON turns datetimes into text, so each event_time is parsed back
-#      into a real datetime with datetime.fromisoformat.
-#   2. find_alerts groups the events by the rule's group_by field (for the
-#      login rules: one group per source_ip), sorts each group by time,
-#      then slides a window: start at each event in turn and score the
-#      events that follow it inside window_minutes. The score is the event
-#      count, or, when the rule has count_distinct, the number of distinct
-#      values of that field. The first start that reaches the threshold
-#      builds one alert dict for that group.
-#   3. run_all runs every rule in RULES, skips alerts that are already
-#      saved (alert_exists, same rule name and same event_ids), and saves
-#      each new alert with save_alert. The alert dict keys match the
-#      save_alert placeholders, so re-running the engine is safe.
+# services/detection/engine.py
+# detection engine: fetch events, run rules, save alerts
 
 from datetime import datetime, timedelta
 
@@ -27,7 +12,7 @@ API_URL = "http://127.0.0.1:8000/events"
 
 
 def fetch_events(event_type: str) -> list[dict]:
-    """Ask the ingest API for all events of one event_type."""
+    # events of one type from the ingest api, event_time parsed back
     response = httpx.get(API_URL, params={"event_type": event_type})
     response.raise_for_status()
     events = response.json()
@@ -37,7 +22,7 @@ def fetch_events(event_type: str) -> list[dict]:
 
 
 def find_alerts(rule: dict, events: list[dict]) -> list[dict]:
-    """Run one rule over events and return the alert dicts it fires."""
+    # run one rule over grouped events, return the fired alert dicts
     groups: dict[str, list[dict]] = {}
     for event in events:
         key = event[rule["group_by"]]
@@ -77,7 +62,7 @@ def find_alerts(rule: dict, events: list[dict]) -> list[dict]:
 
 
 def run_all() -> None:
-    """Run every rule, save new alerts, skip ones already saved."""
+    # run every rule, save new alerts, skip ones already saved
     for rule in RULES:
         events = fetch_events(rule["event_type"])
         alerts = find_alerts(rule, events)

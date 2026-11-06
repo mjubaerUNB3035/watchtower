@@ -1,7 +1,5 @@
 # services/agent/memory.py
-# Correction memory: what the human reviewer decided before.
-# Past corrections for the same rule are added to the prompt,
-# so the model follows the reviewer's earlier rulings.
+# past reviewer corrections for the prompt
 
 from sqlalchemy import text
 
@@ -9,7 +7,7 @@ from services.agent.database import engine
 
 
 def past_corrections(rule_name):
-    # Human corrections for one rule -> text lines for the prompt.
+    # corrected verdicts from triage_verdicts for one rule, as prompt lines
     sql = """
         SELECT v.verdict AS model_verdict,
                v.human_verdict AS human_verdict,
