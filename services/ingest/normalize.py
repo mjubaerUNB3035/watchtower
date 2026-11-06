@@ -1,24 +1,12 @@
-# Line: 2026-10-18T12:02:11.441-03:00 watchtower-linux sshd[1821]: Failed password for md from 192.168.56.1 port 51234 ssh2
-#
-#   event_time  -> 2026-10-18T12:02:11.441-03:00
-#   host        -> watchtower-linux
-#   source      -> linux_auth
-#   event_type  -> login_failed
-#   username    -> md
-#   source_ip   -> 192.168.56.1
-#   outcome     -> failure
-#   raw         -> the whole line, untouched
+# services/ingest/normalize.py
+# log line parsers: linux auth and web access
 
 import re
 from datetime import datetime, timezone
 
 from services.ingest.schema import SchemaEventIn
 
-# Patterns for the two SSH password lines in auth.log.
-# (?:invalid user )? matches the words "invalid user"
-# when they appear, without becoming a result group.
-# (\S+) captures the username, (\d+\.\d+\.\d+\.\d+)
-# captures the IPv4 address.
+# ssh password lines: group 1 is username, group 2 is source ip
 FAILED_PASSWORD = re.compile(
     r"Failed password for (?:invalid user )?(\S+) "
     r"from (\d+\.\d+\.\d+\.\d+)"
@@ -30,11 +18,7 @@ ACCEPTED_PASSWORD = re.compile(
 
 
 def _event_time_from_line(line: str) -> datetime:
-    # auth.log lines begin with the time, in ISO format
-    # on this system, example: 2026-10-18T03:30:00+00:00
-    # Take the first word of the line and parse it.
-    # If a line ever has no time zone, assume UTC:
-    # that is the project rule for all event times.
+    # first word of the line as event time, UTC if no zone
     first_word = line.split(maxsplit=1)[0]
     moment = datetime.fromisoformat(first_word)
     if moment.tzinfo is None:
@@ -43,9 +27,7 @@ def _event_time_from_line(line: str) -> datetime:
 
 
 def parse_linux_auth_line(line: str, host: str) -> SchemaEventIn | None:
-    # Translate one Linux auth.log line into an event.
-    # Returns None when the line is not an SSH password
-    # event, so the collector can simply skip it.
+    # auth line to a login event, none if not a password line
     line = line.strip()
     failed = FAILED_PASSWORD.search(line)
     if failed:
@@ -73,13 +55,14 @@ def parse_linux_auth_line(line: str, host: str) -> SchemaEventIn | None:
         )
     return None
 
-#Web Access Log Format
+# web access log pattern
 WEB_ACCESS = re.compile(
     r'^(\d+\.\d+\.\d+\.\d+) \S+ (\S+) \[([^\]]+)\] "[A-Z]+ [^"]*" (\d{3})\b'
 )
 
 
 def parse_web_access_line(line: str, host: str) -> SchemaEventIn | None:
+    # web access line to an http event, none if no match
     match = WEB_ACCESS.match(line.strip())
 
     if match is None:
@@ -116,4 +99,3 @@ def parse_web_access_line(line: str, host: str) -> SchemaEventIn | None:
         outcome=outcome,
         raw=line.strip(),
     )
-

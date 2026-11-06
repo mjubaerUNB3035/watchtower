@@ -1,9 +1,5 @@
 # services/agent/tools.py
-# The lookup tools of the triage agent.
-# A tool does one small job and answers with one short text line.
-# Tools never raise: a failed lookup returns a line saying it failed,
-# so the brain can still finish its verdict with what it has.
-# Every tool here only reads. Nothing in this file writes anything.
+# agent lookup tools, read only, one text line each
 
 import ipaddress
 import os
@@ -15,15 +11,14 @@ from sqlalchemy import text
 
 from services.agent.database import engine
 
-# Load the .env file from the project root (two folders up from here)
+# load .env from project root
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 ABUSEIPDB_URL = "https://api.abuseipdb.com/api/v2/check"
 
 
 def ip_history(source_ip):
-    # What our own events table knows about this IP, as one text line.
-    # FILTER counts only the rows that match the condition beside it.
+    # ip stats from events, as one text line
     sql = """
         SELECT COUNT(*) AS total,
                COUNT(*) FILTER (WHERE outcome = 'failure') AS failures,
@@ -49,9 +44,7 @@ def ip_history(source_ip):
 
 
 def abuseipdb_check(source_ip):
-    # Public reputation of the IP from AbuseIPDB, as one text line.
-    # AbuseIPDB only knows public internet IPs, so private and
-    # reserved addresses are answered locally, without any call.
+    # abuseipdb reputation for a public ip, as one text line
     try:
         address = ipaddress.ip_address(source_ip)
     except ValueError:
@@ -85,15 +78,12 @@ def abuseipdb_check(source_ip):
 
 
 def gather_intel(source_ip):
-    # Run every tool for one IP and return the list of text lines.
-    # This list is exactly what build_triage_prompt expects as intel.
+    # run every tool for one ip, return the intel lines
     if not source_ip:
         return ["intel: this alert has no source_ip, no lookups run"]
     return [ip_history(source_ip), abuseipdb_check(source_ip)]
 def alert_facts(alert, events):
-    # Hard facts about one alert, counted by code, not by the model.
-    # The brain reads these lines instead of counting raw log lines
-    # itself, because a small model counts and compares badly.
+    # alert facts counted in code, as text lines
     failures = [e for e in events if e["outcome"] == "failure"]
     successes = [e for e in events if e["outcome"] == "success"]
     usernames = sorted({e["username"] for e in events if e["username"]})

@@ -1,8 +1,5 @@
 # Tests for the Linux auth normalizer and collector.
-# Run with: python -m pytest
-# Each test states what one kind of log line must
-# become, so a future change cannot silently break
-# the translation.
+
 
 from pathlib import Path
 

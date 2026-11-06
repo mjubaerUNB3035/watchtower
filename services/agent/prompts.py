@@ -1,7 +1,5 @@
 # services/agent/prompts.py
 # The instructions for the triage agent brain.
-# prompts.py only builds text. No database, no network.
-# brain.py sends this text to the model and reads the JSON answer.
 
 SYSTEM_PROMPT = """
 You are the SOC tier 1 triage analyst for WatchTower, a home lab
@@ -57,7 +55,6 @@ Answer with JSON only, exactly this shape, no other text:
 
 def build_triage_prompt(alert, events, intel):
     # Pack one alert, its evidence events, and the intel text
-    # into the single user message the brain reads.
     lines = []
     lines.append("ALERT")
     lines.append(f"rule_name: {alert['rule_name']}")

@@ -1,15 +1,13 @@
 # services/agent/review.py
-# The human review step (SOC 2). Lists every pending verdict,
-# shows the alert facts beside the model verdict, and records
-# the human decision: approved, or corrected with the right word.
-# Run: python -m services.agent.review
+# human review of pending verdicts
+# run: python -m services.agent.review
 
 from services.agent.brain import VERDICTS
 from services.agent.database import get_pending_verdicts, review_verdict
 
 
 def show_verdict(v):
-    # One pending verdict with the facts it is judged against.
+    # print one pending verdict with its alert facts
     print(f"verdict {v['verdict_id']} for alert {v['alert_id']}: "
           f"{v['rule_name']}, {v['source_ip']}, "
           f"user {v['username']}, count {v['event_count']}")
@@ -19,7 +17,7 @@ def show_verdict(v):
 
 
 def ask_decision(v):
-    # Ask until the reviewer answers a, c, or s.
+    # loop until answer is a, c, or s
     while True:
         answer = input("approve [a], correct [c], skip [s]: ")
         answer = answer.strip().lower()
@@ -29,7 +27,7 @@ def ask_decision(v):
 
 
 def ask_correct_word():
-    # Ask until the reviewer types one of the 3 verdict words.
+    # loop until answer is one of the verdict words
     while True:
         word = input(f"correct verdict {VERDICTS}: ").strip()
         if word in VERDICTS:
@@ -38,6 +36,7 @@ def ask_correct_word():
 
 
 def run_all():
+    # review each pending verdict and record the decision
     pending = get_pending_verdicts()
     if not pending:
         print("no verdicts waiting for review")

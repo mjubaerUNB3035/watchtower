@@ -1,9 +1,5 @@
 # services/agent/brain.py
-# The brain of the triage agent.
-# Sends the packed prompt to the local Ollama model and turns the
-# model's JSON answer into the verdict dict save_verdict expects.
-# If the model answer cannot be used, the brain returns a safe
-# needs_more_info verdict instead of crashing the agent.
+# ollama triage calls and verdict parsing
 
 import json
 import os
@@ -14,7 +10,7 @@ from dotenv import load_dotenv
 
 from services.agent.prompts import SYSTEM_PROMPT
 
-# Load the .env file from the project root (two folders up from here)
+# load .env from project root
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
@@ -23,8 +19,7 @@ VERDICTS = ("true_positive", "false_positive", "needs_more_info")
 
 
 def parse_verdict(text):
-    # Turn the model's answer text into a verdict dict.
-    # Raises ValueError if the answer breaks the contract.
+    # parse model JSON, return validated verdict dict
     verdict = json.loads(text)
     if verdict.get("verdict") not in VERDICTS:
         raise ValueError("verdict word is not one of the three")
@@ -34,9 +29,7 @@ def parse_verdict(text):
 
 
 def think(prompt_text):
-    # Ask the local model to judge one packed alert prompt.
-    # Returns a verdict dict in all cases: a real one when the
-    # model behaves, a needs_more_info fallback when it does not.
+    # send prompt to ollama, return verdict dict or needs_more_info fallback
     try:
         response = httpx.post(
             f"{OLLAMA_HOST}/api/chat",

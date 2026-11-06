@@ -1,3 +1,6 @@
+# services/ingest/schema.py
+# event input schema for the ingest api
+
 from datetime import datetime
 from pydantic import BaseModel
 

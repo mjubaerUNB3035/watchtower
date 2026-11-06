@@ -1,9 +1,6 @@
 # services/api/main.py
-# The dashboard API: HTTP endpoints over the read queries.
-# The browser speaks JSON to this app; this app speaks SQL
-# through database.py. The one write (human review) is passed
-# to the agent's review_verdict, so its rules stay in one place.
-# Run: uvicorn services.api.main:app --port 8001
+# dashboard api endpoints
+# run: uvicorn services.api.main:app --port 8001
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,8 +26,7 @@ from services.api.database import (
 
 app = FastAPI(title="WatchTower Dashboard API")
 
-# The dashboard page runs on port 5173. A browser blocks a page
-# from calling a different port unless the API allows it (CORS).
+# allow the dashboard page on port 5173 (CORS)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -40,37 +36,43 @@ app.add_middleware(
 
 
 class ReviewIn(BaseModel):
-    # The JSON body of one review click.
+    # review request body
     decision: str
     human_verdict: str | None = None
 
 
 class IncidentCreateIn(BaseModel):
+    # incident create request body
     alert_id: int
 
 
 class IncidentUpdateIn(BaseModel):
+    # incident update request body
     status: str
     notes: str | None = None
 
 
 @app.get("/health")
 def health():
+    # api health check
     return {"status": "ok", "service": "dashboard-api"}
 
 
 @app.get("/overview")
 def overview():
+    # overview page counts
     return overview_counts()
 
 
 @app.get("/alerts")
 def alerts():
+    # all alerts, each with its latest verdict
     return list_alerts()
 
 
 @app.get("/alerts/{alert_id}")
 def alert_detail(alert_id: int):
+    # one alert detail with its incident, 404 if not found
     detail = get_alert_detail(alert_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="alert not found")
@@ -80,6 +82,7 @@ def alert_detail(alert_id: int):
 
 @app.post("/verdicts/{verdict_id}/review")
 def review(verdict_id: int, body: ReviewIn):
+    # save an approve or correct decision for one verdict
     if body.decision not in ("approved", "corrected"):
         raise HTTPException(
             status_code=400, detail="decision must be approved or corrected"
@@ -100,11 +103,13 @@ INCIDENT_STATUSES = ("open", "investigating", "closed")
 
 @app.get("/incidents")
 def incidents_list():
+    # all incidents
     return list_incidents()
 
 
 @app.post("/incidents")
 def incidents_create(body: IncidentCreateIn):
+    # create an incident for one alert, after the eligibility checks
     detail = get_alert_detail(body.alert_id)
     if detail is None:
         raise HTTPException(status_code=404, detail="alert not found")
@@ -119,6 +124,7 @@ def incidents_create(body: IncidentCreateIn):
 
 @app.get("/incidents/{incident_id}")
 def incidents_detail(incident_id: int):
+    # one incident with its alert and events
     incident = get_incident(incident_id)
     if incident is None:
         raise HTTPException(status_code=404, detail="incident not found")
@@ -129,6 +135,7 @@ def incidents_detail(incident_id: int):
 
 @app.patch("/incidents/{incident_id}")
 def incidents_update(incident_id: int, body: IncidentUpdateIn):
+    # update incident status and notes
     if body.status not in INCIDENT_STATUSES:
         raise HTTPException(status_code=400, detail="invalid status")
     incident = get_incident(incident_id)
@@ -140,10 +147,12 @@ def incidents_update(incident_id: int, body: IncidentUpdateIn):
 
 @app.get("/shift-log")
 def shift_log(hours: int = 24):
+    # shift summary for the last N hours
     if hours < 1 or hours > 168:
         raise HTTPException(status_code=400, detail="hours must be 1 to 168")
     return shift_summary(hours)
 
 @app.get("/hosts")
 def hosts():
+    # hosts and users lists from events
     return {"hosts": list_hosts(), "users": list_users()}
