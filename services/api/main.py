@@ -21,6 +21,8 @@ from services.api.database import (
     update_incident,
     list_hosts,
     list_users,
+    latest_scan_results,
+
 
 )
 
@@ -156,3 +158,8 @@ def shift_log(hours: int = 24):
 def hosts():
     # hosts and users lists from events
     return {"hosts": list_hosts(), "users": list_users()}
+
+@app.get("/scans")
+def scans():
+    # latest scan result for each host
+    return latest_scan_results()

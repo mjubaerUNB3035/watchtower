@@ -279,3 +279,23 @@ def list_users():
             )
         ).mappings().all()
     return [dict(r) for r in rows]
+
+def latest_scan_results():
+    # latest scan result for each host
+    sql = """
+        SELECT DISTINCT ON (host) host, open_ports, scanned_at
+        FROM scan_results
+        ORDER BY host, scanned_at DESC
+    """
+    with engine.connect() as conn:
+        rows = conn.execute(text(sql)).mappings().all()
+    results = []
+    for row in rows:
+        results.append(
+            {
+                "host": row["host"],
+                "open_ports": row["open_ports"],
+                "scanned_at": row["scanned_at"],
+            }
+        )
+    return results

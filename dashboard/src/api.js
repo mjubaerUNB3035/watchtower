@@ -78,3 +78,8 @@ export function getShiftLog(hours) {
 export function getHosts() {
     return getJson("/hosts");
 }
+
+// Scan
+export function getScans() {
+    return getJson("/scans");
+}
