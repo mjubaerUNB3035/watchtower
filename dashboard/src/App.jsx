@@ -5,6 +5,9 @@ import AlertQueue from "./pages/AlertQueue";
 import Incidents from "./pages/Incidents";
 import ShiftLog from "./pages/ShiftLog";
 import Hosts from "./pages/Hosts";
+import Scanner from "./pages/Scanner";
+
+
 
 // sidebar pages
 const PAGES = [
@@ -13,6 +16,7 @@ const PAGES = [
     { id: "incidents", label: "Incidents" },
     { id: "shift", label: "Shift log" },
     { id: "hosts", label: "Hosts and users" },
+    { id: "scanner", label: "Scanner" },
 ];
 
 export default function App() {
@@ -63,6 +67,8 @@ export default function App() {
                 {page === "shift" && <ShiftLog />}
                 {/* hosts and users page */}
                 {page === "hosts" && <Hosts />}
+                {/* scanner page */}
+                {page === "scanner" && <Scanner />}
             </main>
         </div>
     );
