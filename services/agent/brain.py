@@ -97,3 +97,45 @@ def think_scan(prompt_text, system_prompt):
             "summary": f"The model answer could not be used: {error}",
             "recommended_action": "Review this scan manually",
         }
+
+# Phising verdicts
+
+PHISH_VERDICTS = ("phishing", "suspicious", "safe")
+
+
+def parse_phishing(answer):
+    # parse model JSON, return validated phishing verdict dict
+    verdict = json.loads(answer)
+    if verdict.get("verdict") not in PHISH_VERDICTS:
+        raise ValueError("verdict word is not one of the three")
+    if not verdict.get("summary"):
+        raise ValueError("summary is missing")
+    return verdict
+
+
+def think_phishing(prompt_text, system_prompt):
+    # send phishing prompt to ollama, return verdict dict or needs_more_info fallback
+    try:
+        response = httpx.post(
+            f"{OLLAMA_HOST}/api/chat",
+            json={
+                "model": MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt_text},
+                ],
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": 0},
+            },
+            timeout=300,
+        )
+        response.raise_for_status()
+        content = response.json()["message"]["content"]
+        return parse_phishing(content)
+    except (httpx.HTTPError, ValueError) as error:
+        return {
+            "verdict": "needs_more_info",
+            "confidence": 0,
+            "summary": f"The model answer could not be used: {error}",
+        }

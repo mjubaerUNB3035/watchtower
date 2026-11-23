@@ -83,3 +83,8 @@ export function getHosts() {
 export function getScans() {
     return getJson("/scans");
 }
+
+// Phishing
+export function getPhishing() {
+    return getJson("/phishing");
+}
