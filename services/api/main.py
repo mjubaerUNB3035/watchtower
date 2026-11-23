@@ -22,6 +22,7 @@ from services.api.database import (
     list_hosts,
     list_users,
     latest_scan_results,
+    list_phishing_reports,
 
 
 )
@@ -163,3 +164,8 @@ def hosts():
 def scans():
     # latest scan result for each host
     return latest_scan_results()
+
+# Phishing reports
+@app.get("/phishing")
+def phishing():
+    return list_phishing_reports()

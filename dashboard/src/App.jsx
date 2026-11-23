@@ -6,6 +6,7 @@ import Incidents from "./pages/Incidents";
 import ShiftLog from "./pages/ShiftLog";
 import Hosts from "./pages/Hosts";
 import Scanner from "./pages/Scanner";
+import Phishing from "./pages/Phishing";
 
 
 
@@ -17,6 +18,7 @@ const PAGES = [
     { id: "shift", label: "Shift log" },
     { id: "hosts", label: "Hosts and users" },
     { id: "scanner", label: "Scanner" },
+    { id: "phishing", label: "Phishing" },
 ];
 
 export default function App() {
@@ -69,6 +71,8 @@ export default function App() {
                 {page === "hosts" && <Hosts />}
                 {/* scanner page */}
                 {page === "scanner" && <Scanner />}
+                {/* phishing page */}
+                {page === "phishing" && <Phishing />}
             </main>
         </div>
     );

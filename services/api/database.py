@@ -299,3 +299,13 @@ def latest_scan_results():
             }
         )
     return results
+
+# list phishing reports
+def list_phishing_reports():
+    sql = text("SELECT * FROM phishing_reports ORDER BY id DESC")
+    with engine.connect() as conn:
+        rows = conn.execute(sql).mappings()
+        reports = []
+        for row in rows:
+            reports.append(dict(row))
+    return reports
