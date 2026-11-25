@@ -11,7 +11,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from services.phishing.checks import run_checks
-from services.phishing.database import create_table, report_exists, save_report
+from services.phishing.database import create_table, get_blocked_senders, report_exists, save_report
 
 # load .env from project root
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
@@ -115,19 +115,25 @@ def parse_email(raw):
 # Pull new
 def pull_new(limit=10):
     create_table()
+    # Get blocked senders
+    blocked = get_blocked_senders()
     mail = connect()
     mail.select("INBOX")
     _, data = mail.search(None, "ALL")
     uids = data[0].split()
     saved = 0
+
     for uid in uids[-limit:]:
         _, msg = mail.fetch(uid, "(BODY.PEEK[])")
         email = parse_email(msg[0][1])
+
         if report_exists(email["message_id"]):
             continue
-        findings = run_checks(email)
+
+        findings = run_checks(email, blocked)
         save_report(email, findings)
         saved += 1
+
     mail.logout()
     return saved
 
