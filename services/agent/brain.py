@@ -100,7 +100,7 @@ def think_scan(prompt_text, system_prompt):
 
 # Phising verdicts
 
-PHISH_VERDICTS = ("phishing", "suspicious", "safe")
+PHISH_VERDICTS = ("phishing", "suspicious", "safe", "needs_more_info")
 
 
 def parse_phishing(answer):

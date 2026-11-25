@@ -1,4 +1,4 @@
-# checks.py
+# services/phishing/checks.py
 
 import ipaddress
 
@@ -10,26 +10,121 @@ BRANDS = {
     "amazon": "amazon.com",
     "google": "google.com",
     "netflix": "netflix.com",
+    "rbc": "rbc.com",
+    "td": "td.com",
+    "scotiabank": "scotiabank.com",
+    "bmo": "bmo.com",
+    "cra": "canada.ca",
+    "canadapost": "canadapost.ca",
+    "aircanada": "aircanada.com",
+    "dhl": "dhl.com",
+    "fedex": "fedex.com",
+    "ups": "ups.com",
+    "facebook": "facebook.com",
+    "instagram": "instagram.com",
+    "linkedin": "linkedin.com",
+    "chase": "chase.com",
+    "binance": "binance.com",
+    "coinbase": "coinbase.com",
 }
 
-FREE_MAIL = ("gmail.com", "yahoo.com", "outlook.com", "hotmail.com")
+FREE_MAIL = {
+    "gmail.com",
+    "yahoo.com",
+    "hotmail.com",
+    "outlook.com",
+    "aol.com",
+    "proton.me",
+    "protonmail.com",
+    "yandex.com",
+    "mail.com",
+    "gmx.com",
+}
 
-SHORTENERS = ("bit.ly", "tinyurl.com", "t.co", "goo.gl", "rb.gy", "ow.ly")
+SHORTENERS = {
+    "bit.ly",
+    "tinyurl.com",
+    "t.co",
+    "goo.gl",
+    "ow.ly",
+    "is.gd",
+    "buff.ly",
+    "rebrand.ly",
+    "cutt.ly",
+}
 
-DANGEROUS_TYPES = (
-    "exe", "scr", "js", "vbs", "bat", "cmd",
-    "ps1", "msi", "iso", "img", "jar", "hta", "lnk",
-)
+DANGEROUS_TYPES = {
+    "exe",
+    "scr",
+    "bat",
+    "cmd",
+    "com",
+    "pif",
+    "js",
+    "jse",
+    "vbs",
+    "vbe",
+    "wsf",
+    "wsh",
+    "jar",
+    "msi",
+    "ps1",
+    "hta",
+    "lnk",
+    "html",
+    "htm",
+}
 
-MACRO_TYPES = ("docm", "xlsm", "pptm")
+MACRO_TYPES = {"docm", "xlsm", "pptm"}
 
-PRESSURE_WORDS = (
-    "urgent", "verify", "immediately", "password", "closed",
-    "suspended", "expire", "winner", "prize", "act now",
-)
+ARCHIVE_TYPES = {"zip", "rar", "7z"}
 
+DOC_TYPES = {
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "txt",
+    "jpg",
+    "jpeg",
+    "png",
+}
 
-# Read Parts
+PRESSURE_WORDS = [
+    "urgent",
+    "verify",
+    "immediately",
+    "password",
+    "closed",
+    "suspended",
+    "locked",
+    "expire",
+    "confirm",
+    "action required",
+    "unauthorized",
+    "alert",
+    "warning",
+    "limited",
+    "restore",
+]
+
+MONEY_WORDS = [
+    "gift card",
+    "wire transfer",
+    "bitcoin",
+    "crypto",
+    "e-transfer",
+    "bank account",
+    "western union",
+    "moneygram",
+    "cash app",
+    "venmo",
+    "zelle",
+]
+
+SWAPS = {"0": "o", "1": "l", "3": "e", "5": "s", "@": "a"}
+
 
 # Address domain
 def domain_of(address):
@@ -55,19 +150,15 @@ def registered_domain(host):
     return labels[-2] + "." + labels[-1]
 
 
-# Unswap letters
+# Unswapped text
 def unswapped(text):
-    swaps = {"0": "o", "1": "l", "3": "e", "5": "s", "@": "a"}
-    letters = []
-    for letter in text:
-        if letter in swaps:
-            letters.append(swaps[letter])
-        else:
-            letters.append(letter)
-    return "".join(letters)
+    result = text.lower()
+    for fake, real in SWAPS.items():
+        result = result.replace(fake, real)
+    return result
 
 
-# Is IP
+# Ip host
 def is_ip(host):
     try:
         ipaddress.ip_address(host)
@@ -76,144 +167,228 @@ def is_ip(host):
         return False
 
 
-# Brand Checks
-
 # Imitated brand
 def imitated_brand(domain):
-    plain = unswapped(registered_domain(domain))
-    plain_full = unswapped(domain)
+    own_domain = registered_domain(domain)
+    clean_domain = unswapped(own_domain)
+    clean_full = unswapped(domain)
     for brand, real_domain in BRANDS.items():
-        if brand in plain or brand in plain_full:
-            if registered_domain(domain) != real_domain:
+        if brand in clean_domain or brand in clean_full:
+            if own_domain != real_domain:
                 return brand
     return None
 
-
-# Sender
 
 # Check sender
 def check_sender(email):
     findings = []
     domain = domain_of(email["sender"])
     brand = imitated_brand(domain)
-    if brand is not None:
-        findings.append({
-            "check": "sender",
-            "detail": "sender domain imitates " + brand + ": " + domain,
-        })
+    if brand:
+        findings.append(
+            {
+                "check": "fake sender",
+                "detail": f"sender domain imitates {brand}: {domain}",
+            }
+        )
+    name = (email.get("sender_name") or "").lower()
     if domain in FREE_MAIL:
-        name = email.get("sender_name", "").lower()
         for brand in BRANDS:
             if brand in name:
-                findings.append({
-                    "check": "sender",
-                    "detail": "free mail address claims to be " + brand,
-                })
+                findings.append(
+                    {
+                        "check": "sender brand claim",
+                        "detail": f"sender name claims {brand} but address is free mail: {domain}",
+                    }
+                )
+                break
     return findings
 
-
-# Links
 
 # Check link
 def check_link(link):
     findings = []
     host = host_of(link)
     if is_ip(host):
-        findings.append({
-            "check": "link",
-            "detail": "link goes to an IP address, not a name: " + host,
-        })
-    if registered_domain(host) in SHORTENERS:
-        findings.append({
-            "check": "link",
-            "detail": "link uses a shortener, real destination hidden: " + host,
-        })
-    if "@" in link.split("://")[-1].split("/")[0]:
-        findings.append({
-            "check": "link",
-            "detail": "link hides its real host behind an @ sign",
-        })
+        findings.append(
+            {
+                "check": "dangerous link",
+                "detail": f"link goes to an IP address, not a name: {host}",
+            }
+        )
+        return findings
+    authority = link.split("://")[-1].split("/")[0]
+    if "@" in authority:
+        findings.append(
+            {
+                "check": "trick link",
+                "detail": f"link has @ before the host, real host is hidden: {host}",
+            }
+        )
+    if host.startswith("xn--") or ".xn--" in host:
+        findings.append(
+            {
+                "check": "fake link",
+                "detail": f"link host uses punycode lookalike letters: {host}",
+            }
+        )
     brand = imitated_brand(host)
-    if brand is not None:
-        findings.append({
-            "check": "link",
-            "detail": "link host imitates " + brand + ": " + host,
-        })
+    if brand:
+        findings.append(
+            {
+                "check": "fake link",
+                "detail": f"link domain imitates {brand}: {registered_domain(host)}",
+            }
+        )
+    if registered_domain(host) in SHORTENERS:
+        findings.append(
+            {
+                "check": "hidden link",
+                "detail": f"link uses a shortener, real destination hidden: {registered_domain(host)}",
+            }
+        )
+    if link.lower().startswith("http://"):
+        findings.append(
+            {
+                "check": "unsecure link",
+                "detail": f"link is plain http, not https: {host}",
+            }
+        )
+    labels = host.split(".")
+    if len(labels) >= 4:
+        findings.append(
+            {
+                "check": "deep subdomain link",
+                "detail": f"link host stacks subdomains: {host}",
+            }
+        )
     return findings
 
 
 # Check links
 def check_links(email):
     findings = []
-    for link in email["links"]:
-        for finding in check_link(link):
-            findings.append(finding)
+    for link in email.get("links") or []:
+        findings.extend(check_link(link))
     return findings
 
-
-# Attachments
 
 # Check attachment
 def check_attachment(name):
     findings = []
-    lower = name.lower()
-    extension = lower.split(".")[-1]
-    if extension in DANGEROUS_TYPES:
-        findings.append({
-            "check": "attachment",
-            "detail": "dangerous attachment type ." + extension + ": " + name,
-        })
-    if extension in MACRO_TYPES:
-        findings.append({
-            "check": "attachment",
-            "detail": "attachment can carry macros: " + name,
-        })
-    if lower.count(".") >= 2:
-        findings.append({
-            "check": "attachment",
-            "detail": "double extension hides the real type: " + name,
-        })
+    parts = name.lower().split(".")
+    last = parts[-1]
+    if last in DANGEROUS_TYPES:
+        findings.append(
+            {
+                "check": "dangerous attachment",
+                "detail": f"dangerous attachment type .{last}: {name}",
+            }
+        )
+    if len(parts) >= 3 and parts[-2] in DOC_TYPES:
+        findings.append(
+            {
+                "check": "fake attachment",
+                "detail": f"double extension hides the real type: {name}",
+            }
+        )
+    if last in MACRO_TYPES:
+        findings.append(
+            {
+                "check": "macro attachment",
+                "detail": f"macro attachment type .{last} can run code: {name}",
+            }
+        )
+    if last in ARCHIVE_TYPES:
+        findings.append(
+            {
+                "check": "archive attachment",
+                "detail": f"archive attachment .{last}, contents not seen: {name}",
+            }
+        )
     return findings
 
 
 # Check attachments
 def check_attachments(email):
     findings = []
-    for name in email["attachments"]:
-        for finding in check_attachment(name):
-            findings.append(finding)
+    for name in email.get("attachments") or []:
+        findings.extend(check_attachment(name))
     return findings
 
-
-# Subject
 
 # Check subject
 def check_subject(email):
     findings = []
-    subject = email["subject"].lower()
-    matched = []
+    subject = (email.get("subject") or "").lower()
+    found = []
     for word in PRESSURE_WORDS:
         if word in subject:
-            matched.append(word)
-    if matched:
-        findings.append({
-            "check": "subject",
-            "detail": "subject uses pressure words: " + ", ".join(matched),
-        })
+            found.append(word)
+    if found:
+        findings.append(
+            {
+                "check": "pressure subject",
+                "detail": "subject uses pressure words: " + ", ".join(found),
+            }
+        )
+    found_money = []
+    for word in MONEY_WORDS:
+        if word in subject:
+            found_money.append(word)
+    if found_money:
+        findings.append(
+            {
+                "check": "money subject",
+                "detail": "subject uses money words: " + ", ".join(found_money),
+            }
+        )
+    return findings
+
+# Check reply to
+def check_reply_to(email):
+    findings = []
+    reply_to = email.get("reply_to") or ""
+    if reply_to:
+        sender_domain = domain_of(email["sender"])
+        reply_domain = domain_of(reply_to)
+        if reply_domain != sender_domain:
+            findings.append(
+                {
+                    "check": "reply-to mismatch",
+                    "detail": f"reply goes to {reply_domain}, sender is {sender_domain}",
+                }
+            )
     return findings
 
 
-# Run
+# Check auth
+def check_auth(email):
+    findings = []
+    auth = email.get("auth") or {}
+    failed = []
+    for name in ("spf", "dkim", "dmarc"):
+        if auth.get(name) == "fail":
+            failed.append(name)
+    if failed:
+        findings.append(
+            {
+                "check": "failed authentication",
+                "detail": "authentication failed: " + ", ".join(failed),
+            }
+        )
+    return findings
+
+
+
 
 # Run checks
 def run_checks(email):
     findings = []
-    for finding in check_sender(email):
-        findings.append(finding)
-    for finding in check_links(email):
-        findings.append(finding)
-    for finding in check_attachments(email):
-        findings.append(finding)
-    for finding in check_subject(email):
-        findings.append(finding)
+    findings += check_sender(email)
+    findings += check_links(email)
+    findings += check_attachments(email)
+    findings += check_subject(email)
+    findings += check_reply_to(email)
+    findings += check_auth(email)
     return findings
