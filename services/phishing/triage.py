@@ -2,7 +2,7 @@
 
 from services.agent.brain import think_phishing
 from services.phishing.database import get_new_reports, save_verdict
-
+from services.phishing.checks import host_of
 
 # Rules
 PHISH_SYSTEM_PROMPT = (
@@ -10,13 +10,18 @@ PHISH_SYSTEM_PROMPT = (
     "Answer with JSON only: "
     "{\"verdict\": \"phishing\" or \"suspicious\" or \"safe\", "
     "\"confidence\": 0 to 100, \"summary\": \"one short reason\"}. "
-    "Rules: a sender or link that imitates a brand means phishing. "
-    "A dangerous attachment type means phishing. "
-    "An IP address link with pressure words in the subject means phishing. "
-    "Only pressure words, only a shortener, or only a macro attachment "
+    "Rules: a finding named fake sender, fake link, dangerous link, "
+    "trick link, dangerous attachment, fake attachment, or "
+    "failed authentication means phishing. "
+    "Only findings named sender brand claim, reply-to mismatch, "
+    "hidden link, unsecure link, deep subdomain link, macro attachment, "
+    "archive attachment, pressure subject, or money subject "
     "means suspicious. "
     "Zero findings means safe. "
     "If the facts are unclear, answer needs_more_info as the verdict."
+    "Use exactly these three keys and no others: "
+    "{\"verdict\": \"safe\", \"confidence\": 90, "
+    "\"summary\": \"one short reason\"} is the shape. "
 )
 
 
@@ -41,8 +46,10 @@ def build_phish_prompt(report):
     lines.append("Sender name: " + (report["sender_name"] or ""))
     lines.append("Subject: " + report["subject"])
     lines.append("Links: " + str(len(report["links"])))
+    
+    lines.append("Links: " + str(len(report["links"])))
     for link in report["links"]:
-        lines.append("Link: " + link)
+        lines.append("Link host: " + host_of(link))
     lines.append("Attachments: " + str(len(report["attachments"])))
     for name in report["attachments"]:
         lines.append("Attachment: " + name)
@@ -58,6 +65,8 @@ def build_phish_prompt(report):
 def judge_report(report):
     prompt = build_phish_prompt(report)
     result = think_phishing(prompt, PHISH_SYSTEM_PROMPT)
+    if result["verdict"] == "needs_more_info" and result["confidence"] == 0:
+        return result
     save_verdict(
         report["id"],
         result["verdict"],

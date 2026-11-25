@@ -1,30 +1,27 @@
-# mailbox.py
+# services/phishing/mailbox.py
 
-import email
 import imaplib
 import os
 import re
+from email import message_from_bytes
 from email.header import decode_header
 from email.utils import parseaddr
+from pathlib import Path
 
 from dotenv import load_dotenv
 
 from services.phishing.checks import run_checks
 from services.phishing.database import create_table, report_exists, save_report
 
-load_dotenv()
+# load .env from project root
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-IMAP_HOST = "imap.gmail.com"
 
-
-# Connect mailbox
+# Connect
 def connect():
-    address = os.getenv("GMAIL_ADDRESS")
-    password = os.getenv("GMAIL_APP_PASSWORD")
-    box = imaplib.IMAP4_SSL(IMAP_HOST)
-    box.login(address, password)
-    box.select("INBOX")
-    return box
+    mail = imaplib.IMAP4_SSL("imap.gmail.com")
+    mail.login(os.getenv("GMAIL_ADDRESS"), os.getenv("GMAIL_APP_PASSWORD"))
+    return mail
 
 
 # Decode text
@@ -41,94 +38,104 @@ def decode_text(value):
 
 # Body text
 def body_text(message):
-    texts = []
-    htmls = []
-    if message.is_multipart():
-        parts = message.walk()
-    else:
-        parts = [message]
-    for part in parts:
-        kind = part.get_content_type()
-        payload = part.get_payload(decode=True)
-        if payload is None:
-            continue
-        if kind == "text/plain":
-            texts.append(payload.decode("utf-8", errors="replace"))
-        if kind == "text/html":
-            htmls.append(payload.decode("utf-8", errors="replace"))
-    return texts, htmls
+    text = ""
+    html = ""
+    for part in message.walk():
+        content_type = part.get_content_type()
+        if content_type == "text/plain":
+            payload = part.get_payload(decode=True) or b""
+            charset = part.get_content_charset() or "utf-8"
+            text += payload.decode(charset, errors="replace")
+        elif content_type == "text/html":
+            payload = part.get_payload(decode=True) or b""
+            charset = part.get_content_charset() or "utf-8"
+            html += payload.decode(charset, errors="replace")
+    return text, html
 
 
 # Find links
-def find_links(texts, htmls):
+def find_links(text, html):
     links = []
-    for html in htmls:
-        found = re.findall(r'href=["\'](https?://[^"\']+)', html)
-        for link in found:
-            if link not in links:
-                links.append(link)
-    for text in texts:
-        found = re.findall(r"https?://[^\s<>\"']+", text)
-        for link in found:
-            if link not in links:
-                links.append(link)
+    for link in re.findall(r'href=["\'](https?://[^"\']+)', html or ""):
+        if link not in links:
+            links.append(link)
+    for link in re.findall(r"https?://[^\s<>\"')]+", text or ""):
+        link = link.rstrip(".,")
+        if link not in links:
+            links.append(link)
     return links
 
 
 # Attachment names
 def attachment_names(message):
     names = []
-    if message.is_multipart():
-        for part in message.walk():
-            name = part.get_filename()
-            if name is not None:
-                names.append(decode_text(name))
+    for part in message.walk():
+        name = part.get_filename()
+        if name:
+            names.append(decode_text(name))
     return names
 
 
+# Auth results
+def auth_results(message):
+    headers = message.get_all("Authentication-Results") or []
+    text = " ".join(headers).lower()
+    results = {}
+    for name in ("spf", "dkim", "dmarc"):
+        match = re.search(name + r"=(\w+)", text)
+        if match:
+            results[name] = match.group(1)
+    return results
+
+
 # Parse email
-def parse_email(raw_bytes):
-    message = email.message_from_bytes(raw_bytes)
-    name, address = parseaddr(message.get("From", ""))
-    texts, htmls = body_text(message)
-    parsed = {
-        "sender": address.lower(),
-        "sender_name": decode_text(name),
-        "subject": decode_text(message.get("Subject", "")),
-        "links": find_links(texts, htmls),
-        "attachments": attachment_names(message),
-        "message_id": (message.get("Message-ID") or "").strip(),
+def parse_email(raw):
+    message = message_from_bytes(raw)
+    sender_name, sender = parseaddr(message["From"] or "")
+    sender_name = decode_text(sender_name)
+    sender = sender.lower()
+    reply_name, reply_to = parseaddr(message["Reply-To"] or "")
+    reply_to = reply_to.lower()
+    subject = decode_text(message["Subject"])
+    text, html = body_text(message)
+    links = find_links(text, html)
+    attachments = attachment_names(message)
+    return {
+        "sender": sender,
+        "sender_name": sender_name,
+        "subject": subject,
+        "links": links,
+        "attachments": attachments,
+        "message_id": message["Message-ID"],
+        "reply_to": reply_to,
+        "auth": auth_results(message),
     }
-    return parsed
 
 
-# Pull new emails
+# Pull new
 def pull_new(limit=10):
     create_table()
-    box = connect()
+    mail = connect()
+    mail.select("INBOX")
+    _, data = mail.search(None, "ALL")
+    uids = data[0].split()
     saved = 0
-    try:
-        status, data = box.uid("search", None, "ALL")
-        uids = data[0].split()
-        recent = uids[-limit:]
-        for uid in recent:
-            status, fetched = box.uid("fetch", uid, "(BODY.PEEK[])")
-            raw = fetched[0][1]
-            parsed = parse_email(raw)
-            if parsed["message_id"] and report_exists(parsed["message_id"]):
-                continue
-            findings = run_checks(parsed)
-            save_report(parsed, findings)
-            saved += 1
-    finally:
-        box.logout()
+    for uid in uids[-limit:]:
+        _, msg = mail.fetch(uid, "(BODY.PEEK[])")
+        email = parse_email(msg[0][1])
+        if report_exists(email["message_id"]):
+            continue
+        findings = run_checks(email)
+        save_report(email, findings)
+        saved += 1
+    mail.logout()
     return saved
 
 
-# Run monitor
+# Main
 def main():
     saved = pull_new()
-    print("saved:", saved)
+    print(f"saved: {saved}")
 
 
 if __name__ == "__main__":
