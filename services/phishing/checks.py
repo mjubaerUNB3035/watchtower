@@ -380,11 +380,28 @@ def check_auth(email):
     return findings
 
 
-
-
-# Run checks
-def run_checks(email):
+# Check blocked sender Domain
+def check_blocked(email, blocked):
     findings = []
+    sender = email["sender"].lower()
+    if sender in blocked:
+        findings.append({
+            "check": "blocked sender",
+            "detail": "sender is on the blocked list: " + sender,
+        })
+    # extract the Domain 
+    elif domain_of(email["sender"]) in blocked:
+        findings.append({
+            "check": "blocked sender",
+            "detail": "sender domain is on the blocked list: "
+                      + domain_of(email["sender"]),
+        })
+    return findings
+
+# Run checks - passes to mailbox pull_new
+def run_checks(email, blocked):
+    findings = []
+    findings = findings + check_blocked(email, blocked)
     findings += check_sender(email)
     findings += check_links(email)
     findings += check_attachments(email)

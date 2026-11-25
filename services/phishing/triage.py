@@ -10,7 +10,7 @@ PHISH_SYSTEM_PROMPT = (
     "Answer with JSON only: "
     "{\"verdict\": \"phishing\" or \"suspicious\" or \"safe\", "
     "\"confidence\": 0 to 100, \"summary\": \"one short reason\"}. "
-    "Rules: a finding named fake sender, fake link, dangerous link, "
+    "Rules: a finding named fake sender, blocked sender, fake link, dangerous link, "
     "trick link, dangerous attachment, fake attachment, or "
     "failed authentication means phishing. "
     "Only findings named sender brand claim, reply-to mismatch, "

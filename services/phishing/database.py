@@ -122,3 +122,38 @@ def save_verdict(report_id, verdict, confidence, summary):
     }
     with engine.begin() as conn:
         conn.execute(sql, values)
+
+
+# Create blocked table
+def create_blocked_table():
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS blocked_senders (
+                id SERIAL PRIMARY KEY,
+                sender TEXT UNIQUE NOT NULL
+            )
+        """))
+
+
+# Add blocked sender
+def add_blocked_sender(sender):
+    create_blocked_table()
+    with engine.begin() as conn:
+        conn.execute(
+            text("INSERT INTO blocked_senders (sender) VALUES (:sender) "
+                 "ON CONFLICT (sender) DO NOTHING"),
+            {"sender": sender.strip().lower()},
+        )
+
+
+# Get blocked List senders
+def get_blocked_senders():
+    create_blocked_table()
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT sender FROM blocked_senders ORDER BY sender")
+        ).fetchall()
+    senders = []
+    for row in rows:
+        senders.append(row[0])
+    return senders
