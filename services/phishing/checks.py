@@ -28,6 +28,16 @@ BRANDS = {
     "coinbase": "coinbase.com",
 }
 
+BRAND_FAMILIES = {
+    "google": {"google.com", "googleapis.com", "gstatic.com", "googleusercontent.com"},
+    "microsoft": {"microsoft.com", "microsoftonline.com", "office.com", "live.com", "outlook.com"},
+    "amazon": {"amazon.com", "amazonaws.com", "amazonses.com"},
+    "apple": {"apple.com", "icloud.com"},
+    "facebook": {"facebook.com", "fbcdn.net"},
+    "instagram": {"instagram.com", "cdninstagram.com"},
+    "paypal": {"paypal.com", "paypalobjects.com"},
+}
+
 FREE_MAIL = {
     "gmail.com",
     "yahoo.com",
@@ -174,7 +184,8 @@ def imitated_brand(domain):
     clean_full = unswapped(domain)
     for brand, real_domain in BRANDS.items():
         if brand in clean_domain or brand in clean_full:
-            if own_domain != real_domain:
+            family = BRAND_FAMILIES.get(brand, {real_domain})
+            if own_domain not in family:
                 return brand
     return None
 
@@ -206,7 +217,7 @@ def check_sender(email):
 
 
 # Check link
-def check_link(link):
+def check_link(link, sender_domain):
     findings = []
     host = host_of(link)
     if is_ip(host):
@@ -255,7 +266,7 @@ def check_link(link):
             }
         )
     labels = host.split(".")
-    if len(labels) >= 4:
+    if len(labels) >= 4 and registered_domain(host) != sender_domain:
         findings.append(
             {
                 "check": "deep subdomain link",
@@ -263,15 +274,15 @@ def check_link(link):
             }
         )
     return findings
-
-
 # Check links
 def check_links(email):
     findings = []
-    for link in email.get("links") or []:
-        findings.extend(check_link(link))
+    sender_domain = registered_domain(domain_of(email["sender"]))
+    for link in email["links"]:
+        for finding in check_link(link, sender_domain):
+            if finding not in findings:
+                findings.append(finding)
     return findings
-
 
 # Check attachment
 def check_attachment(name):
@@ -352,7 +363,7 @@ def check_reply_to(email):
     if reply_to:
         sender_domain = domain_of(email["sender"])
         reply_domain = domain_of(reply_to)
-        if reply_domain != sender_domain:
+        if registered_domain(reply_domain) != registered_domain(sender_domain):
             findings.append(
                 {
                     "check": "reply-to mismatch",

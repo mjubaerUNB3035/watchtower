@@ -123,6 +123,21 @@ def save_verdict(report_id, verdict, confidence, summary):
     with engine.begin() as conn:
         conn.execute(sql, values)
 
+# Save recheck
+def save_recheck(report_id, findings):
+    with engine.begin() as conn:
+        conn.execute(
+            text("""
+                UPDATE phishing_reports
+                SET findings = :findings,
+                    verdict = NULL,
+                    confidence = NULL,
+                    summary = NULL,
+                    status = 'new'
+                WHERE id = :report_id
+            """),
+            {"findings": json.dumps(findings), "report_id": report_id},
+        )
 
 # Create blocked table
 def create_blocked_table():

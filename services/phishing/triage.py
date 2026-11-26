@@ -46,8 +46,6 @@ def build_phish_prompt(report):
     lines.append("Sender name: " + (report["sender_name"] or ""))
     lines.append("Subject: " + report["subject"])
     lines.append("Links: " + str(len(report["links"])))
-    
-    lines.append("Links: " + str(len(report["links"])))
     for link in report["links"]:
         lines.append("Link host: " + host_of(link))
     lines.append("Attachments: " + str(len(report["attachments"])))
@@ -63,6 +61,19 @@ def build_phish_prompt(report):
 
 # Judge one
 def judge_report(report):
+    if not report["findings"]:
+        result = {
+            "verdict": "safe",
+            "confidence": 100,
+            "summary": "No findings from checks.",
+        }
+        save_verdict(
+            report["id"],
+            result["verdict"],
+            result["confidence"],
+            result["summary"],
+        )
+        return result
     prompt = build_phish_prompt(report)
     result = think_phishing(prompt, PHISH_SYSTEM_PROMPT)
     if result["verdict"] == "needs_more_info" and result["confidence"] == 0:

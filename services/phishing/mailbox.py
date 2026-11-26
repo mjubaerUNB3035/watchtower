@@ -136,7 +136,19 @@ def pull_new(limit=10):
 
     mail.logout()
     return saved
-
+ 
+# Fetch by message id
+def fetch_by_message_id(message_id):
+    mail = connect()
+    mail.select("INBOX")
+    _, data = mail.search(None, "HEADER", "Message-ID", message_id)
+    uids = data[0].split()
+    if not uids:
+        mail.logout()
+        return None
+    _, msg = mail.fetch(uids[0], "(BODY.PEEK[])")
+    mail.logout()
+    return parse_email(msg[0][1])
 
 # Main
 def main():
