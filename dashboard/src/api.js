@@ -88,3 +88,8 @@ export function getScans() {
 export function getPhishing() {
     return getJson("/phishing");
 }
+
+//Intel
+export function getIntel() {
+    return getJson("/intel");
+}
