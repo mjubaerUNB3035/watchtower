@@ -10,11 +10,23 @@ from sqlalchemy import create_engine, text
 # load .env from project root
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
-DATABASE_URL = (
-    f"postgresql+psycopg://{os.getenv('POSTGRES_USER')}:"
-    f"{os.getenv('POSTGRES_PASSWORD')}@localhost:5433/"
-    f"{os.getenv('POSTGRES_DB')}"
-)
+# DATABASE_URL = (
+#     f"postgresql+psycopg://{os.getenv('POSTGRES_USER')}:"
+#     f"{os.getenv('POSTGRES_PASSWORD')}@localhost:5433/"
+#     f"{os.getenv('POSTGRES_DB')}"
+# )
+#
+# engine = create_engine(DATABASE_URL)
+
+# hosted database Customer side
+if os.getenv("HOSTED_DATABASE_URL"):
+    DATABASE_URL = os.getenv("HOSTED_DATABASE_URL").replace("postgresql://", "postgresql+psycopg://", 1)
+else:
+    DATABASE_URL = (
+        f"postgresql+psycopg://{os.getenv('POSTGRES_USER')}:"
+        f"{os.getenv('POSTGRES_PASSWORD')}@localhost:5433/"
+        f"{os.getenv('POSTGRES_DB')}"
+    )
 
 engine = create_engine(DATABASE_URL)
 

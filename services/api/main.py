@@ -2,6 +2,11 @@
 # dashboard api endpoints
 # run: uvicorn services.api.main:app --port 8001
 
+import os
+
+# Client End Import
+from fastapi.responses import JSONResponse
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,15 +35,34 @@ from services.api.database import (
 
 app = FastAPI(title="WatchTower Dashboard API")
 
+# Dev
+
 # allow the dashboard page on port 5173 (CORS)
+#app.add_middleware(
+#    CORSMiddleware,
+#    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+#    allow_methods=["*"],
+#    allow_headers=["*"],
+#)
+
+# Client End
+# allow the dashboard page (CORS): local ports, plus the hosted origin when set
+origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+if os.getenv("DASHBOARD_ORIGIN"):
+    origins.append(os.getenv("DASHBOARD_ORIGIN"))
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
+# read only lock for the public copy: blocks every write when DEMO_READ_ONLY is set
+@app.middleware("http")
+async def demo_lock(request, call_next):
+    if os.getenv("DEMO_READ_ONLY") and request.method != "GET":
+        return JSONResponse(status_code=403, content={"detail": "read only demo"})
+    return await call_next(request)
 class ReviewIn(BaseModel):
     # review request body
     decision: str
