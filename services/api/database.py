@@ -309,3 +309,11 @@ def list_phishing_reports():
         for row in rows:
             reports.append(dict(row))
     return reports
+
+# List intel
+def list_intel():
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text("SELECT ip, score, reports, country, isp, checked_at FROM intel_cache ORDER BY score DESC, reports DESC")
+        ).mappings().all()
+    return [dict(row) for row in rows]

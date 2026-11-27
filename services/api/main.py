@@ -23,6 +23,7 @@ from services.api.database import (
     list_users,
     latest_scan_results,
     list_phishing_reports,
+    list_intel,
 
 
 )
@@ -169,3 +170,7 @@ def scans():
 @app.get("/phishing")
 def phishing():
     return list_phishing_reports()
+
+@app.get("/intel")
+def intel():
+    return list_intel()
