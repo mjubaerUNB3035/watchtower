@@ -1,7 +1,11 @@
 // src/api.js
 // Dashboard API client (port 8001).
 
-const API = "http://127.0.0.1:8001";
+// Dev api
+//const API = "http://127.0.0.1:8001";
+
+// hosted api url from the build environment wins, local address otherwise
+const API = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
 
 async function getJson(path) {
     const res = await fetch(API + path);
@@ -92,4 +96,9 @@ export function getPhishing() {
 //Intel
 export function getIntel() {
     return getJson("/intel");
+}
+
+//
+export function getUpdates() {
+    return getJson("/updates");
 }

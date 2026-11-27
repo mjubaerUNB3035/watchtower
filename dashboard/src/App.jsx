@@ -8,6 +8,7 @@ import Hosts from "./pages/Hosts";
 import Scanner from "./pages/Scanner";
 import Phishing from "./pages/Phishing";
 import Intel from "./pages/Intel";
+import Updates from "./pages/Updates";
 
 
 
@@ -21,6 +22,7 @@ const PAGES = [
     { id: "scanner", label: "Scanner" },
     { id: "phishing", label: "Phishing" },
     { id: "intel", label: "Intel" },
+    { id: "updates", label: "Updates" },
 ];
 
 export default function App() {
@@ -77,6 +79,8 @@ export default function App() {
                 {page === "phishing" && <Phishing />}
                 {/* intel page */}
                 {page === "intel" && <Intel />}
+                {/* updates page */}
+                {page === "updates" && <Updates />}
             </main>
         </div>
     );
