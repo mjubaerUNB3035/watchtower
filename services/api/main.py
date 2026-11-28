@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-
+from services.api.updates import UPDATES
 from services.agent.brain import VERDICTS
 from services.agent.database import review_verdict
 from services.api.database import (
@@ -198,3 +198,8 @@ def phishing():
 @app.get("/intel")
 def intel():
     return list_intel()
+
+# Updates
+@app.get("/updates")
+def get_updates():
+    return UPDATES
