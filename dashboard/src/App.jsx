@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Overview from "./pages/Overview";
+import Overview from "./pages/overview";
 import AlertDetail from "./pages/AlertDetail";
 import AlertQueue from "./pages/AlertQueue";
 import Incidents from "./pages/Incidents";
